@@ -22,16 +22,16 @@
   ([xs]
    (sym-xs->tree xs {:functions #{}}))
   ([xs result]
-    (if (seq xs)
-      (recur (next xs)
-             (let [e (first xs)]
-               (if (= 'defn (first e))
-                 (update result
-                         :functions
-                         conj
-                         (second e))
-                 result)))
-      result)))
+   (if (seq xs)
+     (recur (next xs)
+            (let [e (first xs)]
+              (if (= 'defn (first e))
+                (update result
+                        :functions
+                        conj
+                        (second e))
+                result)))
+     result)))
 
 (def test-code '((ns
                    me.lomin.namure.core-test
@@ -53,8 +53,17 @@
   (is (= #{'read-namespace-of}
          (:functions (sym-xs->tree test-code)))))
 
-(defn get-f-dependencies [xs user-functions]
-  )
+(defn get-f-dependencies
+  ([xs user-functions]
+   (get-f-dependencies xs user-functions #{}))
+  ([xs user-functions result]
+   (if-let [f (first xs)]
+     (if (sequential? f)
+       (recur (concat f (next xs)) user-functions result)
+       (if (user-functions f)
+         (recur (next xs) user-functions (conj result f))
+         (recur (next xs) user-functions result)))
+     result)))
 
 (deftest finds-all-function-dependencies-test
   (is (= #{'with-open 'take-while}
