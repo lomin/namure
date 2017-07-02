@@ -18,11 +18,23 @@
   (is (<= 4
           (count (read-namespace-of {:file "me/lomin/namure/core_test.clj"})))))
 
-(defn sym-xs->tree [param1]
-  {:functions nil})
+(defn sym-xs->tree
+  ([xs]
+   (sym-xs->tree xs {:functions #{}}))
+  ([xs result]
+    (if (seq xs)
+      (recur (next xs)
+             (let [e (first xs)]
+               (if (= 'defn (first e))
+                 (update result
+                         :functions
+                         conj
+                         (second e))
+                 result)))
+      result)))
 
 (deftest finds-all-user-functions-test
-  (is (= [read-namespace-of]
+  (is (= #{'read-namespace-of}
          (:functions (sym-xs->tree '((ns
                                        me.lomin.namure.core-test
                                        (:require
