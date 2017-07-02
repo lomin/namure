@@ -2,7 +2,14 @@
 
 Visualizes direct dependencies of clojure functions.
 
+## Leiningen
+
+*namure* is available from Clojars.  Add the following dependency to your *project.clj*:
+
+[![Clojars Project](https://img.shields.io/clojars/v/me.lomin/namure.svg)](https://clojars.org/me.lomin/namure)
 ## Usage ##
+
+### Example 1 ###
 
 ```clojure
 (ns com.company.core-test
@@ -21,7 +28,7 @@ Visualizes direct dependencies of clojure functions.
 (vijual/draw-tree (namure/make-tree my-fn))
 ```
 
-### Example ###
+### Example 2 ###
 ```clojure
 (vijual/draw-tree
     (namure/make-tree*
@@ -69,9 +76,44 @@ Visualizes direct dependencies of clojure functions.
                                                community-cards
                                                player-reactions
                                                my-past-actions))))))
+                                               
+ =>
+                                               
+                                    +--------+
+                                    | answer |
+                                    +---+----+
+                                        |
+                     +------------------+------------------+
+                     |                                     |
+               +-----+------+                        +-----+------+
+               | decide-act |                        | make-execu |
+               |    ion     |                        | tion-plan  |
+               +-----+------+                        +-----+------+
+                     |                                     |
+      +--------------+--------------+             +--------++--------+
+      |              |              |             |         |        |
++-----+------+ +-----+------+ +-----+------+ +----+----+ +--+---+ +--+---+
+| check-or-c | | decide-act | | i-have-the | | archive | | init | | play |
+|    all     | | ion-when-i | | -best-poss | +---------+ +------+ +------+
++------------+ | -have-not- | | ible-hand  |
+               | the-best-p | +-----+------+
+               | ossible-ha |       |
+               |     nd     |       +-----+-------------+-----------+
+               +-----+------+             |             |           |
+                     |              +-----+------+ +----+----+ +----+----+
+               +-----+-----+        | calculate- | | combine | | ranking |
+               |           |        | best-hand- | +---------+ +---------+
+            +--+---+ +-----+------+ |  possible  |
+            | ev+? | | time-to-bl | +------------+
+            +------+ |    uff?    |
+                     +------------+
 ```
 
-# About
+## Limitations
+
+Only visualizes dependencies from the same namespace.
+
+## About
 
 The word Namure is a combination of Namu (나무, meaning tree in Korean) and Clojure.
 
