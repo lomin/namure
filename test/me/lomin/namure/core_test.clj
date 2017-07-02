@@ -18,6 +18,9 @@
   (is (<= 4
           (count (read-namespace-of {:file "me/lomin/namure/core_test.clj"})))))
 
+(defn get-user-functions [m]
+  (set (keys m)))
+
 (defn get-f-dependencies
   ([xs user-functions]
    (get-f-dependencies xs user-functions #{}))
@@ -36,9 +39,14 @@
   ([xs result]
    (if (seq xs)
      (recur (next xs)
-            (let [e (first xs)]
-              (if (= 'defn (first e))
-                (assoc result (second e) [(second e)])
+            (let [f-xs (first xs)]
+              (if (= 'defn (first f-xs))
+                (assoc result
+                  (second f-xs)
+                  (into [(second f-xs)]
+                        (map (partial get result))
+                        (sort (get-f-dependencies f-xs
+                                                  (get-user-functions result)))))
                 result)))
      result)))
 
@@ -61,7 +69,7 @@
 
 (deftest finds-all-user-functions-test
   (is (= #{'read-namespace-of 'test-f}
-         (set (keys (sym-xs->tree test-code))))))
+         (get-user-functions (sym-xs->tree test-code)))))
 
 (deftest finds-all-function-dependencies-test
   (is (= #{'with-open 'take-while}
@@ -69,13 +77,13 @@
                              #{'with-open 'take-while 'frequencies}))))
 
 (deftest creates-tree-test
-  (is (= [['read-namespace-of
+  (is (= ['test-f
+          ['read-namespace-of
            ['take-while]
-           ['test-f
-            ['take-while]]
-           ['with-open]]]
+           ['with-open]]
+          ['take-while]]
          (get (sym-xs->tree test-code
                             {'with-open   ['with-open]
                              'take-while  ['take-while]
                              'frequencies ['frequencies]})
-              'read-namespace-of))))
+              'test-f))))
