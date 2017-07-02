@@ -11,9 +11,6 @@
                                           {:eof nil}
                                           rdr))))))
 
-(defmacro make-tree [sym]
-  `(read-namespace-of (meta (var ~sym))))
-
 (deftest converts-namespace-of-var-to-list-test
   (is (<= 4
           (count (read-namespace-of {:file "me/lomin/namure/core_test.clj"})))))
@@ -33,9 +30,9 @@
          (recur (next xs) user-functions result)))
      result)))
 
-(defn sym-xs->tree
+(defn sym-xs->namure
   ([xs]
-   (sym-xs->tree xs {}))
+   (sym-xs->namure xs {}))
   ([xs result]
    (if (seq xs)
      (recur (next xs)
@@ -69,7 +66,7 @@
 
 (deftest finds-all-user-functions-test
   (is (= #{'read-namespace-of 'test-f}
-         (get-user-functions (sym-xs->tree test-code)))))
+         (get-user-functions (sym-xs->namure test-code)))))
 
 (deftest finds-all-function-dependencies-test
   (is (= #{'with-open 'take-while}
@@ -82,8 +79,22 @@
            ['take-while]
            ['with-open]]
           ['take-while]]
-         (get (sym-xs->tree test-code
-                            {'with-open   ['with-open]
-                             'take-while  ['take-while]
-                             'frequencies ['frequencies]})
+         (get (sym-xs->namure test-code
+                              {'with-open   ['with-open]
+                               'take-while  ['take-while]
+                               'frequencies ['frequencies]})
               'test-f))))
+
+(defmacro make-tree [sym]
+  `[(-> ~sym
+        (var)
+        (meta)
+        (read-namespace-of)
+        (sym-xs->namure)
+        (get (symbol (:name (meta (var ~sym))))))])
+
+(deftest integration-test
+  (is (= [['sym-xs->namure
+           ['get-f-dependencies]
+           ['get-user-functions]]]
+         (make-tree sym-xs->namure))))
