@@ -33,20 +33,30 @@
                  result)))
       result)))
 
+(def test-code '((ns
+                   me.lomin.namure.core-test
+                   (:require
+                     [clojure.test :refer :all]
+                     [me.lomin.namure.core :as namure]
+                     [clojure.edn :as edn]))
+                  (defn
+                    read-namespace-of
+                    [{file-str :file}]
+                    (with-open
+                      [rdr
+                       (new
+                         java.io.PushbackReader
+                         (clojure.java.io/reader (clojure.java.io/resource file-str)))]
+                      (vec (take-while some? (repeatedly (partial read {:eof nil} rdr))))))))
+
 (deftest finds-all-user-functions-test
   (is (= #{'read-namespace-of}
-         (:functions (sym-xs->tree '((ns
-                                       me.lomin.namure.core-test
-                                       (:require
-                                         [clojure.test :refer :all]
-                                         [me.lomin.namure.core :as namure]
-                                         [clojure.edn :as edn]))
-                                      (defn
-                                        read-namespace-of
-                                        [{file-str :file}]
-                                        (with-open
-                                          [rdr
-                                           (new
-                                             java.io.PushbackReader
-                                             (clojure.java.io/reader (clojure.java.io/resource file-str)))]
-                                          (vec (take-while some? (repeatedly (partial read {:eof nil} rdr))))))))))))
+         (:functions (sym-xs->tree test-code)))))
+
+(defn get-f-dependencies [xs user-functions]
+  )
+
+(deftest finds-all-function-dependencies-test
+  (is (= #{'with-open 'take-while}
+         (get-f-dependencies (second test-code)
+                             #{'with-open 'take-while 'frequencies}))))
