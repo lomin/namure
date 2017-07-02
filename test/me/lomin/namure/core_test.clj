@@ -1,77 +1,36 @@
 (ns me.lomin.namure.core-test
   (:require [clojure.test :refer :all]
+            [vijual]
             [me.lomin.namure.core :as namure]
             [clojure.edn :as edn]))
 
-(defn read-namespace-of [{file-str :file}]
-  (with-open [rdr (new java.io.PushbackReader
-                       (clojure.java.io/reader (clojure.java.io/resource file-str)))]
-    (vec (take-while some?
-                     (repeatedly (partial read
-                                          {:eof nil}
-                                          rdr))))))
-
 (deftest converts-namespace-of-var-to-list-test
   (is (<= 4
-          (count (read-namespace-of {:file "me/lomin/namure/core_test.clj"})))))
-
-(defn get-user-functions [m]
-  (set (keys m)))
-
-(defn get-f-dependencies
-  ([xs user-functions]
-   (get-f-dependencies xs user-functions #{}))
-  ([xs user-functions result]
-   (if-let [f (first xs)]
-     (if (sequential? f)
-       (recur (concat f (next xs)) user-functions result)
-       (if (user-functions f)
-         (recur (next xs) user-functions (conj result f))
-         (recur (next xs) user-functions result)))
-     result)))
-
-(defn sym-xs->namure
-  ([xs]
-   (sym-xs->namure xs {}))
-  ([xs result]
-   (if (seq xs)
-     (recur (next xs)
-            (let [f-xs (first xs)]
-              (if (= 'defn (first f-xs))
-                (assoc result
-                  (second f-xs)
-                  (into [(second f-xs)]
-                        (map (partial get result))
-                        (sort (get-f-dependencies f-xs
-                                                  (get-user-functions result)))))
-                result)))
-     result)))
+          (count (namure/read-namespace-of {:file "me/lomin/namure/core_test.clj"})))))
 
 (def test-code '((ns
-                   me.lomin.namure.core-test
+                  me.lomin.namure.core-test
                    (:require
-                     [clojure.test :refer :all]
-                     [me.lomin.namure.core :as namure]
-                     [clojure.edn :as edn]))
-                  (defn read-namespace-of
-                    [{file-str :file}]
-                    (with-open
-                      [rdr
-                       (new
-                         java.io.PushbackReader
-                         (clojure.java.io/reader (clojure.java.io/resource file-str)))]
-                      (vec (take-while some? (repeatedly (partial read {:eof nil} rdr))))))
-                  (defn test-f []
-                    (take-while some (read-namespace-of {:file nil})))))
+                    [clojure.test :refer :all]
+                    [me.lomin.namure.core :as namure]
+                    [clojure.edn :as edn]))
+                 (defn read-namespace-of
+                   [{file-str :file}]
+                   (with-open
+                    [rdr (new java.io.PushbackReader
+                              (clojure.java.io/reader (clojure.java.io/resource file-str)))]
+                     (vec (take-while some? (repeatedly (partial read {:eof nil} rdr))))))
+                 (defn test-f []
+                   (take-while some (read-namespace-of {:file nil})))))
 
 (deftest finds-all-user-functions-test
   (is (= #{'read-namespace-of 'test-f}
-         (get-user-functions (sym-xs->namure test-code)))))
+         (namure/get-user-functions (namure/sym-xs->namure test-code)))))
 
 (deftest finds-all-function-dependencies-test
   (is (= #{'with-open 'take-while}
-         (get-f-dependencies (second test-code)
-                             #{'with-open 'take-while 'frequencies}))))
+         (namure/get-f-dependencies (second test-code)
+                                    #{'with-open 'take-while 'frequencies}))))
 
 (deftest creates-tree-test
   (is (= ['test-f
@@ -79,22 +38,62 @@
            ['take-while]
            ['with-open]]
           ['take-while]]
-         (get (sym-xs->namure test-code
-                              {'with-open   ['with-open]
-                               'take-while  ['take-while]
-                               'frequencies ['frequencies]})
+         (get (namure/sym-xs->namure test-code
+                                     {'with-open   ['with-open]
+                                      'take-while  ['take-while]
+                                      'frequencies ['frequencies]})
               'test-f))))
 
-(defmacro make-tree [sym]
-  `[(-> ~sym
-        (var)
-        (meta)
-        (read-namespace-of)
-        (sym-xs->namure)
-        (get (symbol (:name (meta (var ~sym))))))])
-
-(deftest integration-test
+(deftest integration-test-0
   (is (= [['sym-xs->namure
            ['get-f-dependencies]
            ['get-user-functions]]]
-         (make-tree sym-xs->namure))))
+         (namure/make-tree namure/sym-xs->namure))))
+
+(deftest integration-test-1
+  (vijual/draw-tree
+   (namure/make-tree*
+    'answer
+    '((defn ranking [])
+      (defn combine [])
+      (defn calculate-best-hand-possible [])
+      (defn ev+? [])
+      (defn time-to-bluff? [])
+
+      (defn i-have-the-best-possible-hand [community-cards my-cards]
+        (= (ranking (combine community-cards my-cards))
+           (ranking (calculate-best-hand-possible community-cards))))
+
+      (defn check-or-call [player-reactions])
+
+      (defn decide-action-when-i-have-not-the-best-possible-hand [my-cards community-cards player-reactions my-past-actions]
+        (if (or (ev+? my-cards community-cards player-reactions)
+                (time-to-bluff? player-reactions my-past-actions))
+          :raise
+          :fold))
+
+      (defn decide-action [my-cards community-cards player-reactions my-past-actions]
+        (if (i-have-the-best-possible-hand community-cards my-cards)
+          (check-or-call player-reactions)
+          (decide-action-when-i-have-not-the-best-possible-hand my-cards community-cards player-reactions my-past-actions)))
+
+      (defn init [action]
+        {:action action})
+
+      (defn play [plan]
+        plan)
+
+      (defn archive [plan]
+        plan)
+
+      (defn make-execution-plan [action]
+        (-> action
+            (init)
+            (play)
+            (archive)))
+
+      (defn answer [my-cards community-cards player-reactions my-past-actions]
+        (make-execution-plan (decide-action my-cards
+                                            community-cards
+                                            player-reactions
+                                            my-past-actions)))))))
