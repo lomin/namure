@@ -2,7 +2,7 @@
   (:require [clojure.test :refer :all]
             [vijual]
             [me.lomin.namure.core :as namure]
-            [clojure.edn :as edn]))
+            [me.lomin.poker.strategy :as strategy]))
 
 (deftest converts-namespace-of-var-to-list-test
   (is (<= 4
@@ -30,7 +30,7 @@
 (deftest finds-all-function-dependencies-test
   (is (= #{'with-open 'take-while}
          (namure/get-f-dependencies (second test-code)
-                                    #{'with-open 'take-while 'frequencies}))))
+                                    {'with-open nil 'take-while nil 'frequencies nil}))))
 
 (deftest creates-tree-test
   (is (= ['test-f
@@ -39,15 +39,21 @@
            ['with-open]]
           ['take-while]]
          (get (namure/sym-xs->namure test-code
+                                     nil
                                      {'with-open   ['with-open]
                                       'take-while  ['take-while]
                                       'frequencies ['frequencies]})
               'test-f))))
 
 (deftest integration-test-0
-  (is (= [['sym-xs->namure
-           ['get-f-dependencies]
-           ['get-user-functions]]]
+  (is (= '[[sym-xs->namure
+            [get-f-dependencies [get-user-functions]]
+            [insert-ns
+             [make-tree-from-sym
+              [read-namespace-of]
+              [to-file-str
+               [string/replace]
+               [to-relative-resource [string/join] [string/split]]]]]]]
          (namure/make-tree namure/sym-xs->namure))))
 
 (deftest integration-test-1
@@ -97,3 +103,8 @@
                                             community-cards
                                             player-reactions
                                             my-past-actions)))))))
+
+(deftest integration-test-2
+  (vijual/draw-tree
+   (namure/make-tree
+    strategy/answer)))
