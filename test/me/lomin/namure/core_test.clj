@@ -47,13 +47,20 @@
 
 (deftest integration-test-0
   (is (= '[[sym-xs->namure
-            [get-f-dependencies [get-user-functions]]
+            [insert-defn
+             [get-f-dependencies
+              [get-user-functions]
+              [only-if-let]]]
             [insert-ns
+             [make-require-map]
              [make-tree-from-sym
               [read-namespace-of]
               [to-file-str
                [string/replace]
-               [to-relative-resource [string/join] [string/split]]]]]]]
+               [to-relative-resource
+                [string/join]
+                [string/split]]]]
+             [only-if]]]]
          (namure/make-tree namure/sym-xs->namure))))
 
 (deftest integration-test-1
